@@ -1,0 +1,9 @@
+**/target/
+.env
+.env.*
+!.env.example
+.idea/
+*.log
+sources/
+tmp/
+__pycache__/

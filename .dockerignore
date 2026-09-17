@@ -1,0 +1,11 @@
+**/target
+.git
+.idea
+.env
+.env.*
+sources
+config-repo
+docs
+postman
+scripts
+*.log
