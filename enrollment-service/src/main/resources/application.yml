@@ -1,0 +1,13 @@
+# Keep only bootstrap settings here; the service settings come from Config Server.
+spring:
+  application:
+    name: enrollment-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  config:
+    # No optional prefix: normal startup requires the external configuration service.
+    import: "configserver:${CONFIG_SERVER_URL:http://127.0.0.1:8071}"
+  cloud:
+    config:
+      request-connect-timeout: 2000
+      request-read-timeout: 5000
