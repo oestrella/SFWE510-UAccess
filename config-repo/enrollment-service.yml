@@ -1,0 +1,18 @@
+# Student and Enrollment share this service database, separate from the catalog.
+server:
+  port: 8082
+spring:
+  datasource:
+    url: ${ENROLLMENT_DB_URL:jdbc:postgresql://127.0.0.1:5434/enrollments}
+    username: ${ENROLLMENT_DB_USER}
+    password: ${ENROLLMENT_DB_PASSWORD}
+    hikari:
+      connection-timeout: 3000
+      maximum-pool-size: 10
+uaccess:
+  # Course validation crosses the service boundary through HTTP, not a database join.
+  course-api:
+    base-url: ${COURSE_API_URL:http://127.0.0.1:8081}
+    # Small, configurable limits keep an unavailable Course service from blocking requests too long.
+    connect-timeout: ${COURSE_CONNECT_TIMEOUT:1s}
+    read-timeout: ${COURSE_READ_TIMEOUT:2s}

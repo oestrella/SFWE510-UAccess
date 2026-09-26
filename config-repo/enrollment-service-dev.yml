@@ -1,0 +1,13 @@
+# Dev allows the live banner-refresh exercise and optional fictitious seed data.
+uaccess:
+  banner: "UAccess enrollment-service DEV"
+  demo-enabled: ${DEMO_ENABLED:false}
+logging:
+  level:
+    edu.arizona.uaccess: DEBUG
+management:
+  endpoints:
+    web:
+      exposure:
+        # Refresh is exposed only for the local development demonstration.
+        include: health,info,refresh

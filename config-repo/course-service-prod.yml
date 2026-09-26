@@ -1,0 +1,13 @@
+# The same application image uses quieter, seed-free settings for the prod-like profile.
+uaccess:
+  banner: "UAccess course-service PROD"
+  demo-enabled: false
+logging:
+  level:
+    edu.arizona.uaccess: INFO
+management:
+  endpoints:
+    web:
+      exposure:
+        # Limit management exposure to health and info in this profile.
+        include: health,info

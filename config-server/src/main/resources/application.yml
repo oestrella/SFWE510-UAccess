@@ -1,0 +1,27 @@
+# Native configuration keeps the course demo reproducible without an external Git account.
+server:
+  port: 8071
+  shutdown: graceful
+spring:
+  application:
+    name: config-server
+  profiles:
+    # Native selects from the server backend
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          # The configuration folder stays outside the JAR and is mounted by Compose.
+          search-locations: ${CONFIG_REPO_LOCATION:file:./config-repo/}
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true

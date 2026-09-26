@@ -1,0 +1,35 @@
+# Shared defaults let both business services follow the same operational rules.
+spring:
+  messages:
+    fallback-to-system-locale: false
+  jpa:
+    hibernate:
+      # Flyway owns schema changes; Hibernate only checks that the mappings agree.
+      ddl-auto: validate
+    # Database work should finish in the service layer before the response is rendered.
+    open-in-view: false
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+server:
+  shutdown: graceful
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          # A database outage affects readiness, while liveness still checks the running process.
+          include: readinessState,db
+      show-details: never
+logging:
+  level:
+    root: INFO
+uaccess:
+  demo-enabled: false

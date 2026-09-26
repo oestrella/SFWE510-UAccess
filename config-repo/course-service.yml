@@ -1,0 +1,13 @@
+# These settings belong to the catalog service and its own PostgreSQL database.
+server:
+  port: 8081
+spring:
+  datasource:
+    # Loopback is the host default; Compose replaces it with the database service DNS name.
+    url: ${COURSE_DB_URL:jdbc:postgresql://127.0.0.1:5433/courses}
+    username: ${COURSE_DB_USER}
+    # The real password comes from the environment rather than the committed config.
+    password: ${COURSE_DB_PASSWORD}
+    hikari:
+      connection-timeout: 3000
+      maximum-pool-size: 10
