@@ -1,0 +1,20 @@
+# Testcontainers supplies database connection values; Flyway still creates the real schema.
+spring:
+  cloud:
+    config:
+      enabled: false
+  # Flyway creates the tables; JPA checks that they match the Java entity definitions.
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    # Finish database work in the service layer instead of keeping it open while building responses.
+    open-in-view: false
+# A local banner keeps the info endpoint available in the isolated test profile.
+uaccess:
+  banner: Test banner
+  # Use short time limits for tests that simulate Course connection failures.
+  course-api:
+    # This placeholder is replaced by the local HTTP server in integration tests, or the client is mocked.
+    base-url: http://127.0.0.1:9999
+    connect-timeout: 100ms
+    read-timeout: 200ms

@@ -1,0 +1,9 @@
+# Tests use their own bootstrap file so they can exercise the service without Config Server.
+spring:
+  # Keep the service name so test wiring matches the Enrollment application.
+  application:
+    name: enrollment-service
+  # Disable Config Client so isolated tests do not need a running Config Server.
+  cloud:
+    config:
+      enabled: false

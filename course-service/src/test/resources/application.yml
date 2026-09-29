@@ -1,0 +1,7 @@
+# Tests use their own bootstrap file so they can exercise the service without Config Server.
+spring:
+  application:
+    name: course-service
+  cloud:
+    config:
+      enabled: false

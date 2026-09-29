@@ -1,0 +1,12 @@
+# Testcontainers supplies database connection values; Flyway still creates the real schema.
+spring:
+  cloud:
+    config:
+      enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+# A local banner keeps the info endpoint available in the isolated test profile.
+uaccess:
+  banner: Test banner
