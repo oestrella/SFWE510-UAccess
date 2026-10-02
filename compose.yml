@@ -1,0 +1,89 @@
+# I run each service and database separately to show the Phase 1 service boundaries.
+name: uaccess-phase1-dev
+services:
+  # Each database has its own credentials and named volume.
+  course-db:
+    image: postgres:17.9-alpine@sha256:c7526c0f6c3f30260a563d7bcf8ad778effac59a44f8ffa86678c35418338609
+    environment:
+      POSTGRES_DB: courses
+      POSTGRES_USER: ${COURSE_DB_USER:?Set COURSE_DB_USER in .env}
+      POSTGRES_PASSWORD: ${COURSE_DB_PASSWORD:?Set COURSE_DB_PASSWORD in .env}
+    # Published ports stay on loopback for this local course demonstration.
+    ports: ["127.0.0.1:5433:5432"]
+    volumes: ["course-data:/var/lib/postgresql/data"]
+    healthcheck:
+      # Double dollars defer expansion to the container rather than Compose.
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  enrollment-db:
+    image: postgres:17.9-alpine@sha256:c7526c0f6c3f30260a563d7bcf8ad778effac59a44f8ffa86678c35418338609
+    environment:
+      POSTGRES_DB: enrollments
+      POSTGRES_USER: ${ENROLLMENT_DB_USER:?Set ENROLLMENT_DB_USER in .env}
+      POSTGRES_PASSWORD: ${ENROLLMENT_DB_PASSWORD:?Set ENROLLMENT_DB_PASSWORD in .env}
+    ports: ["127.0.0.1:5434:5432"]
+    volumes: ["enrollment-data:/var/lib/postgresql/data"]
+    healthcheck:
+      # Double dollars defer expansion to the container rather than Compose.
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  config-server:
+    image: uaccess/config-server:phase1
+    build:
+      context: .
+      dockerfile: config-server/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      CONFIG_REPO_LOCATION: file:/config-repo/
+    ports: ["127.0.0.1:8071:8071"]
+    # Config Server can read the external files but cannot edit the host copy.
+    volumes: ["./config-repo:/config-repo:ro"]
+    stop_grace_period: 25s
+  course-service:
+    image: uaccess/course-service:phase1
+    build:
+      context: .
+      dockerfile: course-service/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      # Containers reach each other by Compose DNS, not by host loopback.
+      CONFIG_SERVER_URL: http://config-server:8071
+      COURSE_DB_URL: jdbc:postgresql://course-db:5432/courses
+      COURSE_DB_USER: ${COURSE_DB_USER:?Set COURSE_DB_USER in .env}
+      COURSE_DB_PASSWORD: ${COURSE_DB_PASSWORD:?Set COURSE_DB_PASSWORD in .env}
+      DEMO_ENABLED: ${DEMO_ENABLED:-false}
+    ports: ["127.0.0.1:8081:8081"]
+    # Wait for real readiness checks instead of assuming startup order means ready.
+    depends_on:
+      config-server: {condition: service_healthy}
+      course-db: {condition: service_healthy}
+    stop_grace_period: 25s
+  enrollment-service:
+    image: uaccess/enrollment-service:phase1
+    build:
+      context: .
+      dockerfile: enrollment-service/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      # Containers reach each other by Compose DNS, not by host loopback.
+      CONFIG_SERVER_URL: http://config-server:8071
+      ENROLLMENT_DB_URL: jdbc:postgresql://enrollment-db:5432/enrollments
+      ENROLLMENT_DB_USER: ${ENROLLMENT_DB_USER:?Set ENROLLMENT_DB_USER in .env}
+      ENROLLMENT_DB_PASSWORD: ${ENROLLMENT_DB_PASSWORD:?Set ENROLLMENT_DB_PASSWORD in .env}
+      COURSE_API_URL: http://course-service:8081
+      DEMO_ENABLED: ${DEMO_ENABLED:-false}
+    ports: ["127.0.0.1:8082:8082"]
+    # Wait for real readiness checks instead of assuming startup order means ready.
+    depends_on:
+      config-server: {condition: service_healthy}
+      enrollment-db: {condition: service_healthy}
+    stop_grace_period: 25s
+
+# Keeping data outside the containers lets me recreate services without losing records.
+volumes:
+  course-data:
+  enrollment-data:

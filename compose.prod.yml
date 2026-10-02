@@ -1,0 +1,14 @@
+# Layer this over compose.yml to switch profiles while using the same built Java images.
+# A separate project name also separates prod-like data from the dev volumes.
+name: uaccess-phase1-prod
+services:
+  course-service:
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # Fictitious seed data is useful in dev, but this profile must start without it.
+      DEMO_ENABLED: "false"
+  enrollment-service:
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # Fictitious seed data is useful in dev, but this profile must start without it.
+      DEMO_ENABLED: "false"
