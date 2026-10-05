@@ -1,0 +1,761 @@
+{
+  "info": {
+    "name": "UAccess Phase 1 - executable workflow",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 Create Course",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{courseBase}}/api/v1/courses",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"courseCode\": \"PM{{runToken}}\",\n  \"title\": \"Fictitious Postman course\",\n  \"description\": \"Demo only\",\n  \"credits\": 3,\n  \"active\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Create an active catalog entry and save the generated UUID to environment variable for other requests"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// A fresh token avoids identity conflicts when I rerun this collection.",
+              "pm.environment.set(\"runToken\", Date.now().toString(36) + Math.random().toString(36).substring(2,6));",
+              "pm.environment.set(\"missingCourseId\", pm.variables.replaceIn(\"{{$guid}}\"));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+              "pm.environment.set(\"courseId\", pm.response.json().id);",
+              "pm.test(\"UUID and Location\", function () { pm.expect(pm.response.json().id).to.match(/^[a-f0-9-]{36}$/); pm.expect(pm.response.headers.get(\"Location\")).to.include(pm.environment.get(\"courseId\")); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Read Course, HATEOAS",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{courseBase}}/api/v1/courses/{{courseId}}",
+        "description": "Clients receive a self link path to this resource"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Course self link\", () => pm.expect(pm.response.json()._links.self.href).to.include(pm.environment.get(\"courseId\")));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Update Course",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{courseBase}}/api/v1/courses/{{courseId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"courseCode\": \"PM{{runToken}}\",\n  \"title\": \"Updated Postman course\",\n  \"description\": \"Demo only\",\n  \"credits\": 3,\n  \"active\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Updates the existing Course"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Create Student 1",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{enrollmentBase}}/api/v1/students",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"studentNumber\": \"PM{{runToken}}1\",\n  \"name\": \"Fictitious Student 1\",\n  \"email\": \"pm{{runToken}}1@example.invalid\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Create the Student who will enroll; the Enrollment service owns/stores this identity."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Save the server-generated Student ID for the nested enrollment route.",
+              "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+              "pm.environment.set(\"studentId\", pm.response.json().id);",
+              "pm.test(\"UUID and Location\", function () { pm.expect(pm.response.json().id).to.match(/^[a-f0-9-]{36}$/); pm.expect(pm.response.headers.get(\"Location\")).to.include(pm.environment.get(\"studentId\")); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Create Student 2",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{enrollmentBase}}/api/v1/students",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"studentNumber\": \"PM{{runToken}}2\",\n  \"name\": \"Fictitious Student 2\",\n  \"email\": \"pm{{runToken}}2@example.invalid\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "A second Student for later tests"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+              "pm.environment.set(\"secondStudentId\", pm.response.json().id);",
+              "pm.test(\"UUID and Location\", function () { pm.expect(pm.response.json().id).to.match(/^[a-f0-9-]{36}$/); pm.expect(pm.response.headers.get(\"Location\")).to.include(pm.environment.get(\"secondStudentId\")); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Update Student",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{enrollmentBase}}/api/v1/students/{{studentId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"studentNumber\": \"PM{{runToken}}1\",\n  \"name\": \"Updated Demo Student\",\n  \"email\": \"pm{{runToken}}1@example.invalid\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Update Student using ONLY the enrollment service"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Enroll Student",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{enrollmentBase}}/api/v1/students/{{studentId}}/enrollments",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"courseId\": \"{{courseId}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Enrolls student, but in the backend validates the active Course over HTTP"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Keep the first enrollment ID so re-enrollment can prove it created a new record",
+              "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+              "pm.environment.set(\"enrollmentId\", pm.response.json().id);",
+              "pm.test(\"UUID and Location\", function () { pm.expect(pm.response.json().id).to.match(/^[a-f0-9-]{36}$/); pm.expect(pm.response.headers.get(\"Location\")).to.include(pm.environment.get(\"enrollmentId\")); });",
+              "pm.environment.set(\"originalEnrollmentId\", pm.response.json().id);",
+              "pm.test(\"UTC timestamp\", () => pm.expect(pm.response.json().enrolledAt).to.match(/Z$/));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Reject Duplicate",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{enrollmentBase}}/api/v1/students/{{studentId}}/enrollments",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"courseId\": \"{{courseId}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "The same Student/Course pair produces a 409 conflict, not a second row"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// A rejection is a passing test when its HTTP status and stable error code match",
+              "pm.test(\"HTTP 409\", function () { pm.response.to.have.status(409); });",
+              "pm.test(\"ProblemDetail\", function () { const p=pm.response.json(); pm.expect(p.status).to.eql(pm.response.code); pm.expect(p.instance).to.be.a(\"string\"); pm.expect(p.detail).to.be.a(\"string\"); });",
+              "pm.test(\"Error code\", function () { pm.expect(pm.response.json().code).to.eql(\"ALREADY_ENROLLED\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Wrong Student Read",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{enrollmentBase}}/api/v1/students/{{secondStudentId}}/enrollments/{{enrollmentId}}",
+        "description": "Mismatch on the Student ID and the enrollment ID"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", function () { pm.response.to.have.status(404); });",
+              "pm.test(\"ProblemDetail\", function () { const p=pm.response.json(); pm.expect(p.status).to.eql(pm.response.code); pm.expect(p.instance).to.be.a(\"string\"); pm.expect(p.detail).to.be.a(\"string\"); });",
+              "pm.test(\"Error code\", function () { pm.expect(pm.response.json().code).to.eql(\"ENROLLMENT_NOT_FOUND\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 Wrong Student Drop",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{enrollmentBase}}/api/v1/students/{{secondStudentId}}/enrollments/{{enrollmentId}}",
+        "description": "Trying to drop Student not in the course returns 404"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", function () { pm.response.to.have.status(404); });",
+              "pm.test(\"ProblemDetail\", function () { const p=pm.response.json(); pm.expect(p.status).to.eql(pm.response.code); pm.expect(p.instance).to.be.a(\"string\"); pm.expect(p.detail).to.be.a(\"string\"); });",
+              "pm.test(\"Error code\", function () { pm.expect(pm.response.json().code).to.eql(\"ENROLLMENT_NOT_FOUND\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 Missing Course",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{enrollmentBase}}/api/v1/students/{{secondStudentId}}/enrollments",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"courseId\": \"{{missingCourseId}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "A missing Course enrollment is rejected"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", function () { pm.response.to.have.status(404); });",
+              "pm.test(\"ProblemDetail\", function () { const p=pm.response.json(); pm.expect(p.status).to.eql(pm.response.code); pm.expect(p.instance).to.be.a(\"string\"); pm.expect(p.detail).to.be.a(\"string\"); });",
+              "pm.test(\"Error code\", function () { pm.expect(pm.response.json().code).to.eql(\"COURSE_NOT_FOUND\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 Archive Course",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{courseBase}}/api/v1/courses/{{courseId}}/status",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"active\": false\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Archive changes Course eligibility without deleting its identity or existing enrollments"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Archived\", () => pm.expect(pm.response.json().active).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 Read Archived Course",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{courseBase}}/api/v1/courses/{{courseId}}",
+        "description": "An archived Course remains readable so existing references still make sense"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Archived remains readable\", () => pm.expect(pm.response.json().active).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 Reject New Enrollment for Second Student",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{enrollmentBase}}/api/v1/students/{{secondStudentId}}/enrollments",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"courseId\": \"{{courseId}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Second Student gets rejection with a duplicate enrollment registration"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 409\", function () { pm.response.to.have.status(409); });",
+              "pm.test(\"ProblemDetail\", function () { const p=pm.response.json(); pm.expect(p.status).to.eql(pm.response.code); pm.expect(p.instance).to.be.a(\"string\"); pm.expect(p.detail).to.be.a(\"string\"); });",
+              "pm.test(\"Error code\", function () { pm.expect(pm.response.json().code).to.eql(\"COURSE_INACTIVE\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 Existing Enrollment Survives",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{enrollmentBase}}/api/v1/students/{{studentId}}/enrollments/{{enrollmentId}}",
+        "description": "The original enrollment must still be readable after its Course is archived."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Original enrollment\", () => pm.expect(pm.response.json().id).to.eql(pm.environment.get(\"enrollmentId\")));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16 List Local Enrollments",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{enrollmentBase}}/api/v1/students/{{studentId}}/enrollments",
+        "description": "Gets from locally-owned (enrollment service) enrollment data rather than fetching the Course service"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"One row\", () => pm.expect(pm.response.json().totalElements).to.eql(1));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "17 Drop Enrollment",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{enrollmentBase}}/api/v1/students/{{studentId}}/enrollments/{{enrollmentId}}",
+        "description": "Drop removes the enrollment record and returns 204"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 204\", function () { pm.response.to.have.status(204); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "18 Already Dropped",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{enrollmentBase}}/api/v1/students/{{studentId}}/enrollments/{{enrollmentId}}",
+        "description": "A repeated drop returns 404 because the course would be gone from the local record"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", function () { pm.response.to.have.status(404); });",
+              "pm.test(\"ProblemDetail\", function () { const p=pm.response.json(); pm.expect(p.status).to.eql(pm.response.code); pm.expect(p.instance).to.be.a(\"string\"); pm.expect(p.detail).to.be.a(\"string\"); });",
+              "pm.test(\"Error code\", function () { pm.expect(pm.response.json().code).to.eql(\"ENROLLMENT_NOT_FOUND\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "19 Open Course",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{courseBase}}/api/v1/courses/{{courseId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"courseCode\": \"PM{{runToken}}\",\n  \"title\": \"Fictitious Postman course\",\n  \"description\": \"Demo only\",\n  \"credits\": 3,\n  \"active\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Open the Course so the first Student can enroll again after dropping"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "20 Re-enroll with New ID",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{enrollmentBase}}/api/v1/students/{{studentId}}/enrollments",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"courseId\": \"{{courseId}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Re-enrolling creates a new UUID, should not have the old one"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Compare with the original ID after drop and re-enrollment.",
+              "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+              "pm.environment.set(\"enrollmentId\", pm.response.json().id);",
+              "pm.test(\"UUID and Location\", function () { pm.expect(pm.response.json().id).to.match(/^[a-f0-9-]{36}$/); pm.expect(pm.response.headers.get(\"Location\")).to.include(pm.environment.get(\"enrollmentId\")); });",
+              "pm.test(\"New enrollment ID\", () => pm.expect(pm.response.json().id).not.to.eql(pm.environment.get(\"originalEnrollmentId\")));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "21 Show Course Config Banner",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{courseBase}}/api/v1/info",
+        "description": "The config banner shows that the course service loaded external configuration"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Configured banner\", () => pm.expect(pm.response.json().banner).to.include(\"UAccess\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "22 Show Enrollment Config Banner",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{enrollmentBase}}/api/v1/info",
+        "description": "The Enrollment Config banner "
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Configured banner\", () => pm.expect(pm.response.json().banner).to.include(\"UAccess\"));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
